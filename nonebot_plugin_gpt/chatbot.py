@@ -42,13 +42,11 @@ class Chatbot:
 
     _instance: Optional['Chatbot'] = None
 
-    _last_request_time: int
-
     def __init__(self):
-        self.authorization = gpt_config.gpt_api_key
-        self.session_token = gpt_config.gpt_session_token
+        self._authorization = gpt_config.gpt_api_key
+        self._session_token = gpt_config.gpt_session_token
         self._last_request_time = 0
-        self.groups: dict[int, ChatbotGroupStatus] = {}
+        self._groups: dict[int, ChatbotGroupStatus] = {}
 
     async def _sleep_for_next_request(self):
         now = int(time.time())
@@ -79,8 +77,8 @@ class Chatbot:
         :param group_id: the group id.
         """
 
-        self.groups.setdefault(group_id, ChatbotGroupStatus())
-        self.groups[group_id].reset()
+        self._groups.setdefault(group_id, ChatbotGroupStatus())
+        self._groups[group_id].reset()
 
     def get_or_create_status(self, group_id: int) -> ChatbotGroupStatus:
         """
@@ -88,14 +86,14 @@ class Chatbot:
         :param group_id: the group id.
         :return: the status.
         """
-        self.groups.setdefault(group_id, ChatbotGroupStatus())
-        return self.groups[group_id]
+        self._groups.setdefault(group_id, ChatbotGroupStatus())
+        return self._groups[group_id]
 
     @property
     def _headers(self) -> dict[str, str]:
         return {
             'Accept': 'application/json',
-            'Authorization': self.authorization,
+            'Authorization': self._authorization,
             'Content-Type': 'application/json',
             'User-Agent': USER_AGENT,
         }
@@ -157,12 +155,12 @@ class Chatbot:
         """
 
         cookies = {
-            '__Secure-next-auth.session-token': self.session_token
+            '__Secure-next-auth.session-token': self._session_token
         }
 
         await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(cookies=cookies, headers=self._headers) as client:
             async with client.get('https://chat.openai.com/api/auth/session') as resp:
-                self.session_token = resp.cookies.get('__Secure-next-auth.session-token')
-                self.authorization = (await resp.json())['accessToken']
+                self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
+                self._authorization = (await resp.json())['accessToken']
