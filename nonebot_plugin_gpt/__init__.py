@@ -1,4 +1,6 @@
-from nonebot import on_command
+import random
+
+from nonebot import on_command, on_message
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent
 from .chatbot import Chatbot
 from .config import gpt_config
@@ -6,6 +8,7 @@ from .config import gpt_config
 
 gpt = on_command('gpt')
 control = on_command('gpt_control')
+message = on_message()
 
 
 @gpt.handle()
@@ -36,3 +39,19 @@ async def _(event: GroupMessageEvent):
         return
 
     await control.send('无效命令')
+
+
+@message.handle()
+async def _(event: GroupMessageEvent):
+    if random.random() >= gpt_config.gpt_probability:
+        return
+
+    msg = event.get_message().extract_plain_text().strip()
+
+    # Don't reply to empty messages.
+    if msg == '':
+        return
+
+    cb = await Chatbot.get_instance()
+    async for line in cb.get_chat_lines(event.group_id, msg):
+        await message.send(line)
