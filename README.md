@@ -28,10 +28,11 @@
 ## 使用
 
 > 除了概率触发的消息以外，下列均以 `on_command` 方式定义。如果您自己设置过 `command_start` 或其它相关配置，请根据您的配置进行调整。
+> 默认来说，它应该是以斜线 `/` 开头的。
 
-+ `gpt {message}`
++ `/gpt {message}`
 
-+ `gpt_control {action}`
++ `/gpt_control {action}`
 
   在 `GPT_SUDOERS` 中的用户可以控制此机器人，有下列两个`action`：
 
