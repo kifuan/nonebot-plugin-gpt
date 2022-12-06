@@ -14,8 +14,15 @@ control = on_command('gpt_control')
 message = on_regex('^(?!/gpt)')
 
 
+def remove_text_prefix(text: str) -> str:
+    fragments = text.split(' ')
+    if len(fragments) == 0:
+        return text.strip()
+    return text[len(fragments[0]):].strip()
+
+
 @driver.on_startup
-async def _():
+async def startup():
     # Initialize the bot.
     await Chatbot.get_instance()
 
@@ -23,7 +30,7 @@ async def _():
 @gpt.handle()
 async def handle_explicit_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     cb = await Chatbot.get_instance()
-    text = event.get_message().extract_plain_text()
+    text = remove_text_prefix(event.get_message().extract_plain_text())
 
     unique_id = get_unique_id(event)
     async for line in cb.get_chat_lines(unique_id, text):
@@ -31,20 +38,23 @@ async def handle_explicit_message(event: Union[GroupMessageEvent, PrivateMessage
 
 
 @control.handle()
-async def _(event: Union[GroupMessageEvent, PrivateMessageEvent]):
+async def handle_control_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     if event.sender.user_id not in gpt_config.gpt_sudoers:
         await control.send('没有权限')
         return
 
-    text = event.get_message().extract_plain_text()
+    text = remove_text_prefix(event.get_message().extract_plain_text())
+
     cb = await Chatbot.get_instance()
+
+    print(text)
 
     if text == 'refresh_session':
         await cb.refresh_session()
         await control.send('刷新成功')
         return
 
-    if text == 'reset_status':
+    if text == 'reset_context':
         unique_id = get_unique_id(event)
         real_id = unique_id // 10
         cb.reset_or_create_context(get_unique_id(event))
@@ -55,7 +65,7 @@ async def _(event: Union[GroupMessageEvent, PrivateMessageEvent]):
 
 
 @message.handle()
-async def _(event: Union[GroupMessageEvent, PrivateMessageEvent]):
+async def handle_probability_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     if random.random() >= gpt_config.gpt_probability:
         return
 
