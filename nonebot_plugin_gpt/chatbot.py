@@ -1,7 +1,8 @@
 import aiohttp
 import json
 import uuid
-from typing import Optional, AsyncGenerator
+from pydantic import BaseModel
+from typing import AsyncGenerator, Optional
 from .config import gpt_config
 
 USER_AGENT = (
@@ -10,47 +11,61 @@ USER_AGENT = (
 )
 
 
-class Chatbot:
-    config: json
-    conversation_id: Optional[str]
-    parent_id: str
+class ChatbotGroupStatus(BaseModel):
+    conversation_id: Optional[str] = None
+    parent_id: str = ''
 
+    def reset(self):
+        self.conversation_id = None
+        self.parent_id = str(uuid.uuid4())
+
+
+class Chatbot:
     def __init__(self):
         self.authorization = gpt_config.gpt_api_key
         self.session_token = gpt_config.gpt_session_token
-        self.conversation_id = None
-        self.parent_id = str(uuid.uuid4())
+        self.groups: dict[str, ChatbotGroupStatus] = {}
 
-    def reset_chat(self) -> None:
-        self.conversation_id = None
-        self.parent_id = str(uuid.uuid4())
+    def reset_or_create_status(self, group_id: str) -> None:
+        self.groups.setdefault(group_id, ChatbotGroupStatus())
+        self.groups[group_id].reset()
 
-    def generate_data(self, prompt):
+    def get_or_create_status(self, group_id: str) -> ChatbotGroupStatus:
+        self.groups.setdefault(group_id, ChatbotGroupStatus())
+        return self.groups[group_id]
+
+    def generate_data(self, group_id: str, prompt: str) -> dict:
+        status = self.get_or_create_status(group_id)
         return {
-            "action": "next",
-            "messages": [
-                {"id": str(uuid.uuid4()),
-                 "role": "user",
-                 "content": {"content_type": "text", "parts": [prompt]}
-                 }],
-            "conversation_id": self.conversation_id,
-            "parent_message_id": self.parent_id,
-            "model": "text-davinci-002-render"
+            'action': 'next',
+            'messages': [
+                {
+                    'id': str(uuid.uuid4()),
+                    'role': 'user',
+                    'content': {
+                        'content_type': 'text',
+                        'parts': [prompt]
+                    }
+                }
+            ],
+            'conversation_id': status.conversation_id,
+            'parent_message_id': status.parent_id,
+            'model': 'text-davinci-002-render'
         }
 
     @property
     def headers(self) -> dict[str, str]:
         return {
-            "Accept": "application/json",
-            "Authorization": "Bearer " + self.authorization,
-            "Content-Type": "application/json",
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + self.authorization,
+            'Content-Type': 'application/json',
             'User-Agent': USER_AGENT,
         }
 
-    async def get_chat_lines(self, prompt: str) -> AsyncGenerator[str, None]:
+    async def get_chat_lines(self, group_id: str, prompt: str) -> AsyncGenerator[str, None]:
         cached_line = ''
         skip = 0
-        async for line in self.get_chat_stream(prompt):
+        async for line in self.get_chat_stream(group_id, prompt):
             cached_line = line[skip:]
             if cached_line.endswith('\n'):
                 skip += len(cached_line)
@@ -59,16 +74,17 @@ class Chatbot:
         if cached_line != '':
             yield cached_line.strip()
 
-    async def get_chat_stream(self, prompt: str) -> AsyncGenerator[str, None]:
-        data = json.dumps(self.generate_data(prompt))
+    async def get_chat_stream(self, group_id: str, prompt: str) -> AsyncGenerator[str, None]:
+        status = self.get_or_create_status(group_id)
+        data = json.dumps(self.generate_data(group_id, prompt))
         async with aiohttp.ClientSession(raise_for_status=True, headers=self.headers) as client:
             async with client.post('https://chat.openai.com/backend-api/conversation', data=data) as resp:
                 async for line in resp.content:
                     try:
                         line = json.loads(line.decode('utf-8')[6:])
-                        message = line["message"]["content"]["parts"][0]
-                        self.conversation_id = line["conversation_id"]
-                        self.parent_id = line["message"]["id"]
+                        message = line['message']['content']['parts'][0]
+                        status.conversation_id = line['conversation_id']
+                        status.parent_id = line['message']['id']
                         yield message
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
