@@ -6,7 +6,12 @@
 
 ## 安装
 
-先别急喵，等会发布（一小时内）。
++ 使用 `pip` 安装：
+  
+  ```bash
+  pip install -U nonebot-plugin-gpt
+  ```
+
 
 ## 配置项
 
