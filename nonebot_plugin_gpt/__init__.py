@@ -4,22 +4,22 @@ from .chatbot import Chatbot
 from .config import gpt_config
 
 
-chat = on_command('chat')
-gpt = on_command('chat_control')
-
-
-@chat.handle()
-async def _(event: GroupMessageEvent):
-    cb = await Chatbot.get_instance()
-    text = event.get_message().extract_plain_text()
-    async for line in cb.get_chat_lines(event.group_id, text):
-        await chat.send(line)
+gpt = on_command('gpt')
+control = on_command('gpt_control')
 
 
 @gpt.handle()
 async def _(event: GroupMessageEvent):
+    cb = await Chatbot.get_instance()
+    text = event.get_message().extract_plain_text()
+    async for line in cb.get_chat_lines(event.group_id, text):
+        await gpt.send(line)
+
+
+@control.handle()
+async def _(event: GroupMessageEvent):
     if event.sender.user_id not in gpt_config.gpt_sudoers:
-        await gpt.send('没有权限')
+        await control.send('没有权限')
         return
 
     text = event.get_message().extract_plain_text()
@@ -27,12 +27,12 @@ async def _(event: GroupMessageEvent):
 
     if text == 'refresh_session':
         await cb.refresh_session()
-        await gpt.send('刷新成功')
+        await control.send('刷新成功')
         return
 
     if text == 'reset_status':
         cb.reset_or_create_status(event.group_id)
-        await gpt.send('重置成功')
+        await control.send('重置成功')
         return
 
-    await gpt.send('无效命令')
+    await control.send('无效命令')
