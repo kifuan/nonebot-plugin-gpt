@@ -25,7 +25,7 @@ class Chatbot:
     def __init__(self):
         self.authorization = gpt_config.gpt_api_key
         self.session_token = gpt_config.gpt_session_token
-        self.groups: dict[str, ChatbotGroupStatus] = {}
+        self.groups: dict[int, ChatbotGroupStatus] = {}
 
     @staticmethod
     @lru_cache
@@ -34,15 +34,15 @@ class Chatbot:
         await cb.refresh_session()
         return cb
 
-    def reset_or_create_status(self, group_id: str) -> None:
+    def reset_or_create_status(self, group_id: int) -> None:
         self.groups.setdefault(group_id, ChatbotGroupStatus())
         self.groups[group_id].reset()
 
-    def get_or_create_status(self, group_id: str) -> ChatbotGroupStatus:
+    def get_or_create_status(self, group_id: int) -> ChatbotGroupStatus:
         self.groups.setdefault(group_id, ChatbotGroupStatus())
         return self.groups[group_id]
 
-    def generate_data(self, group_id: str, prompt: str) -> dict:
+    def generate_data(self, group_id: int, prompt: str) -> dict:
         status = self.get_or_create_status(group_id)
         return {
             'action': 'next',
@@ -70,7 +70,7 @@ class Chatbot:
             'User-Agent': USER_AGENT,
         }
 
-    async def get_chat_lines(self, group_id: str, prompt: str) -> AsyncGenerator[str, None]:
+    async def get_chat_lines(self, group_id: int, prompt: str) -> AsyncGenerator[str, None]:
         cached_line = ''
         skip = 0
         async for line in self.get_chat_stream(group_id, prompt):
@@ -82,7 +82,7 @@ class Chatbot:
         if cached_line != '':
             yield cached_line.strip()
 
-    async def get_chat_stream(self, group_id: str, prompt: str) -> AsyncGenerator[str, None]:
+    async def get_chat_stream(self, group_id: int, prompt: str) -> AsyncGenerator[str, None]:
         status = self.get_or_create_status(group_id)
         data = json.dumps(self.generate_data(group_id, prompt))
         async with aiohttp.ClientSession(raise_for_status=True, headers=self.headers) as client:
