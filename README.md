@@ -35,8 +35,3 @@
 
   + `refresh_session`：刷新 `session`，根据 `ChatGPT` 下的 [issue #11](https://github.com/acheong08/ChatGPT/issues/11)，你填写的 `session` 应当有一个月的有效期。
   + `reset_status`：刷新聊天记录的上下文。
-
-## Todo
-
-增加一个配置项，让机器人在一定概率下可以回复消息。
-
