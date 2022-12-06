@@ -1,7 +1,7 @@
 import aiohttp
 import json
 import uuid
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from .config import gpt_config
 
 USER_AGENT = (
@@ -47,7 +47,19 @@ class Chatbot:
             'User-Agent': USER_AGENT,
         }
 
-    async def get_chat_stream(self, prompt: str):
+    async def get_chat_lines(self, prompt: str) -> AsyncGenerator[str, None]:
+        cached_line = ''
+        skip = 0
+        async for line in self.get_chat_stream(prompt):
+            cached_line = line[skip:]
+            if cached_line.endswith('\n'):
+                skip += len(cached_line)
+                yield cached_line.strip()
+
+        if cached_line != '':
+            yield cached_line.strip()
+
+    async def get_chat_stream(self, prompt: str) -> AsyncGenerator[str, None]:
         data = json.dumps(self.generate_data(prompt))
         async with aiohttp.ClientSession(raise_for_status=True, headers=self.headers) as client:
             async with client.post('https://chat.openai.com/backend-api/conversation', data=data) as resp:
