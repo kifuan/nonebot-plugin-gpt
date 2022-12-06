@@ -7,7 +7,7 @@ from .config import gpt_config
 @lru_cache
 def get_chatbot() -> Chatbot:
     cb = Chatbot({
-        'Authorization': gpt_config.gpt_session_token,
+        'Authorization': gpt_config.gpt_api_key,
         'session_token': gpt_config.gpt_session_token,
     })
 
