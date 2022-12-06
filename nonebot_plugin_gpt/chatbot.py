@@ -1,6 +1,8 @@
 import aiohttp
 import json
 import uuid
+import time
+import asyncio
 from pydantic import BaseModel
 from typing import AsyncGenerator, Optional, NoReturn
 from .config import gpt_config
@@ -9,6 +11,10 @@ USER_AGENT = (
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
     'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
 )
+
+
+# The request interval in seconds.
+REQUEST_DURATION = 5
 
 
 class ChatbotGroupStatus(BaseModel):
@@ -36,10 +42,22 @@ class Chatbot:
 
     _instance: Optional['Chatbot'] = None
 
+    _last_request_time: int
+
     def __init__(self):
         self.authorization = gpt_config.gpt_api_key
         self.session_token = gpt_config.gpt_session_token
+        self._last_request_time = 0
         self.groups: dict[int, ChatbotGroupStatus] = {}
+
+    async def _sleep_for_next_request(self):
+        now = int(time.time())
+        request_should_after = self._last_request_time + REQUEST_DURATION
+        if request_should_after > now:
+            print(f'Sleep for {request_should_after - now}s.')
+            # Sleep the remaining seconds.
+            await asyncio.sleep(request_should_after - now)
+        self._last_request_time = int(time.time())
 
     @classmethod
     async def get_instance(cls) -> 'Chatbot':
@@ -119,6 +137,8 @@ class Chatbot:
             'model': 'text-davinci-002-render'
         })
 
+        await self._sleep_for_next_request()
+
         async with aiohttp.ClientSession(raise_for_status=True, headers=self._headers) as client:
             async with client.post('https://chat.openai.com/backend-api/conversation', data=data) as resp:
                 async for line in resp.content:
@@ -139,6 +159,8 @@ class Chatbot:
         cookies = {
             '__Secure-next-auth.session-token': self.session_token
         }
+
+        await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(cookies=cookies, headers=self._headers) as client:
             async with client.get('https://chat.openai.com/api/auth/session') as resp:
