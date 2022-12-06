@@ -1,6 +1,6 @@
 import random
 
-from nonebot import on_command, on_message
+from nonebot import on_command, on_regex
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent
 from .chatbot import Chatbot
 from .config import gpt_config
@@ -8,7 +8,7 @@ from .config import gpt_config
 
 gpt = on_command('gpt')
 control = on_command('gpt_control')
-message = on_message()
+message = on_regex('^(?!/gpt)')
 
 
 @gpt.handle()
