@@ -31,12 +31,13 @@
 > 默认来说，它应该是以斜线 `/` 开头的。
 
 + `/gpt {message}`
+  聊天。注意，用户无需输入花括号，这里只是为了方便说明，它是一个消息。
 
 + `/gpt_control {action}`
 
   在 `GPT_SUDOERS` 中的用户可以控制此机器人，有下列两个`action`：
 
   + `refresh_session`：刷新 `session`，根据 `ChatGPT` 下的 [issue #11](https://github.com/acheong08/ChatGPT/issues/11)，你填写的 `session` 应当有一个月的有效期。
-  + `reset_status`：刷新聊天记录的上下文。
+  + `reset_context`：刷新聊天记录的上下文。
 
 + 当 `GPT_PROBABILITY` 不为 `0` 时，有概率回复你发的普通消息。但是如果没有文本，例如只发了图片或聊天记录，它是不会回复的。
