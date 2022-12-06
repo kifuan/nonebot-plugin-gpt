@@ -1,14 +1,21 @@
 import random
 
-from nonebot import on_command, on_regex
+from nonebot import on_command, on_regex, get_driver
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent
 from .chatbot import Chatbot
 from .config import gpt_config
 
 
+driver = get_driver()
 gpt = on_command('gpt')
 control = on_command('gpt_control')
 message = on_regex('^(?!/gpt)')
+
+
+@driver.on_startup
+async def _():
+    # Initialize the bot.
+    await Chatbot.get_instance()
 
 
 @gpt.handle()
