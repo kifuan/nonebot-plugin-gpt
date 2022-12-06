@@ -52,7 +52,6 @@ class Chatbot:
         now = int(time.time())
         request_should_after = self._last_request_time + REQUEST_DURATION
         if request_should_after > now:
-            print(f'Sleep for {request_should_after - now}s.')
             # Sleep the remaining seconds.
             await asyncio.sleep(request_should_after - now)
         self._last_request_time = int(time.time())
