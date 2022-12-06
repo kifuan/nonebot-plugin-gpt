@@ -1,7 +1,9 @@
 import random
 
 from nonebot import on_command, on_regex, get_driver
-from nonebot.adapters.onebot.v11.event import GroupMessageEvent
+from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
+from typing import Union
+
 from .chatbot import Chatbot
 from .config import gpt_config
 
@@ -19,7 +21,7 @@ async def _():
 
 
 @gpt.handle()
-async def _(event: GroupMessageEvent):
+async def handle_explicit_message(event: GroupMessageEvent):
     cb = await Chatbot.get_instance()
     text = event.get_message().extract_plain_text()
     async for line in cb.get_chat_lines(event.group_id, text):
@@ -41,7 +43,7 @@ async def _(event: GroupMessageEvent):
         return
 
     if text == 'reset_status':
-        cb.reset_or_create_status(event.group_id)
+        cb.reset_or_create_context(event.group_id)
         await control.send('重置成功')
         return
 

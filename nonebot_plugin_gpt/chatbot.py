@@ -17,9 +17,9 @@ USER_AGENT = (
 REQUEST_DURATION = 5
 
 
-class ChatbotGroupStatus(BaseModel):
+class ChatbotContext(BaseModel):
     """
-    It makes the contexts independent for different groups.
+    It makes the contexts independent for different people or groups.
     """
 
     conversation_id: Optional[str] = None
@@ -46,7 +46,7 @@ class Chatbot:
         self._authorization = gpt_config.gpt_api_key
         self._session_token = gpt_config.gpt_session_token
         self._last_request_time = 0
-        self._groups: dict[int, ChatbotGroupStatus] = {}
+        self._contexts: dict[int, ChatbotContext] = {}
 
     async def _sleep_for_next_request(self):
         now = int(time.time())
@@ -70,23 +70,23 @@ class Chatbot:
         await cls._instance.refresh_session()
         return cls._instance
 
-    def reset_or_create_status(self, group_id: int) -> NoReturn:
+    def reset_or_create_context(self, unique_id: int) -> NoReturn:
         """
-        Resets the status for specified group, or create a new one if not exist.
-        :param group_id: the group id.
+        Resets the context for specified id, or create a new one if not exist.
+        :param unique_id: the unique id.
         """
 
-        self._groups.setdefault(group_id, ChatbotGroupStatus())
-        self._groups[group_id].reset()
+        self._contexts.setdefault(unique_id, ChatbotContext())
+        self._contexts[unique_id].reset()
 
-    def get_or_create_status(self, group_id: int) -> ChatbotGroupStatus:
+    def get_or_create_context(self, unique_id: int) -> ChatbotContext:
         """
-        Gets the status for specified group, or create a new one if not exist.
-        :param group_id: the group id.
-        :return: the status.
+        Gets the context for specified id, or create a new one if not exist.
+        :param unique_id: the unique id.
+        :return: the context.
         """
-        self._groups.setdefault(group_id, ChatbotGroupStatus())
-        return self._groups[group_id]
+        self._contexts.setdefault(unique_id, ChatbotContext())
+        return self._contexts[unique_id]
 
     @property
     def _headers(self) -> dict[str, str]:
@@ -97,16 +97,16 @@ class Chatbot:
             'User-Agent': USER_AGENT,
         }
 
-    async def get_chat_lines(self, group_id: int, prompt: str) -> AsyncGenerator[str, None]:
+    async def get_chat_lines(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         """
-        Gets lines for specified group and prompt text.
-        :param group_id: the group id.
+        Gets lines for specified id and prompt text.
+        :param unique_id: the unique id.
         :param prompt: the prompt text.
         :return: an async generator containing content in lines from ChatGPT.
         """
         cached_line = ''
         skip = 0
-        async for line in self._get_chat_stream(group_id, prompt):
+        async for line in self._get_chat_stream(unique_id, prompt):
             cached_line = line[skip:]
             if cached_line.endswith('\n'):
                 skip += len(cached_line)
@@ -115,8 +115,8 @@ class Chatbot:
         if cached_line != '':
             yield cached_line.strip()
 
-    async def _get_chat_stream(self, group_id: int, prompt: str) -> AsyncGenerator[str, None]:
-        status = self.get_or_create_status(group_id)
+    async def _get_chat_stream(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
+        ctx = self.get_or_create_context(unique_id)
         data = json.dumps({
             'action': 'next',
             'messages': [
@@ -129,8 +129,8 @@ class Chatbot:
                     }
                 }
             ],
-            'conversation_id': status.conversation_id,
-            'parent_message_id': status.parent_id,
+            'conversation_id': ctx.conversation_id,
+            'parent_message_id': ctx.parent_id,
             'model': 'text-davinci-002-render'
         })
 
@@ -142,8 +142,8 @@ class Chatbot:
                     try:
                         line = json.loads(line.decode('utf-8')[6:])
                         message = line['message']['content']['parts'][0]
-                        status.conversation_id = line['conversation_id']
-                        status.parent_id = line['message']['id']
+                        ctx.conversation_id = line['conversation_id']
+                        ctx.parent_id = line['message']['id']
                         yield message
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
