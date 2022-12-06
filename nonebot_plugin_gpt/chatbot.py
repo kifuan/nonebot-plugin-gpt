@@ -2,6 +2,7 @@ import aiohttp
 import json
 import uuid
 from pydantic import BaseModel
+from functools import lru_cache
 from typing import AsyncGenerator, Optional
 from .config import gpt_config
 
@@ -25,6 +26,13 @@ class Chatbot:
         self.authorization = gpt_config.gpt_api_key
         self.session_token = gpt_config.gpt_session_token
         self.groups: dict[str, ChatbotGroupStatus] = {}
+
+    @staticmethod
+    @lru_cache
+    async def get_instance():
+        cb = Chatbot()
+        await cb.refresh_session()
+        return cb
 
     def reset_or_create_status(self, group_id: str) -> None:
         self.groups.setdefault(group_id, ChatbotGroupStatus())
