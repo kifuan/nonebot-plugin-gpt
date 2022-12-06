@@ -5,7 +5,7 @@ import asyncio
 import aiohttp
 
 from pydantic import BaseModel
-from typing import AsyncGenerator, Optional, NoReturn, Union
+from typing import AsyncGenerator, Optional, Union
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 
 from .config import gpt_config
@@ -73,7 +73,7 @@ class Chatbot:
         await cls._instance.refresh_session()
         return cls._instance
 
-    def reset_or_create_context(self, unique_id: int) -> NoReturn:
+    def reset_or_create_context(self, unique_id: int) -> None:
         """
         Resets the context for specified id, or create a new one if not exist.
         :param unique_id: the unique id.
@@ -151,7 +151,7 @@ class Chatbot:
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
 
-    async def refresh_session(self) -> NoReturn:
+    async def refresh_session(self) -> None:
         """
         Refreshes the token to avoid being expired.
         """
