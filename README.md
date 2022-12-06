@@ -25,11 +25,11 @@
 
 ## 使用
 
-+ `/gpt {message}`
+> 以下均以 `on_command` 方式定义，如果您自己设置过`command_start`或其它相关配置，请根据您的配置进行调整。
 
-  聊天，这个没什么好介绍的。
++ `gpt {message}`
 
-+ `/gpt_control {action}`
++ `gpt_control {action}`
 
   在 `GPT_SUDOERS` 中的用户可以控制此机器人，有下列两个`action`：
 
