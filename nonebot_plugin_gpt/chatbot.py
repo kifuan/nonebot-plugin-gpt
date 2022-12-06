@@ -68,7 +68,7 @@ class Chatbot:
     def headers(self) -> dict[str, str]:
         return {
             'Accept': 'application/json',
-            'Authorization': 'Bearer ' + self.authorization,
+            'Authorization': self.authorization,
             'Content-Type': 'application/json',
             'User-Agent': USER_AGENT,
         }
