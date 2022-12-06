@@ -1,33 +1,72 @@
-from revChatGPT.revChatGPT import Chatbot
-from functools import lru_cache
-from typing import Generator
-
+import aiohttp
+import json
+import uuid
+from typing import Optional
 from .config import gpt_config
 
-
-@lru_cache
-def get_chatbot() -> Chatbot:
-    cb = Chatbot({
-        'Authorization': gpt_config.gpt_api_key,
-        'session_token': gpt_config.gpt_session_token,
-    })
-
-    cb.reset_chat()
-    cb.refresh_session()
-
-    return cb
+USER_AGENT = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+    'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
+)
 
 
-def get_response_lines(text: str) -> Generator[str, None, None]:
-    chatbot = get_chatbot()
-    line = ''
-    skip = 0
-    for resp in chatbot.get_chat_response(text, output='stream'):
-        line = resp['message'][skip:]
-        if '\n' in line:
-            skip += len(line)
-            yield line.strip()
+class Chatbot:
+    config: json
+    conversation_id: Optional[str]
+    parent_id: str
 
-    # Check the line here to avoid missing the last line.
-    if line != '':
-        yield line.strip()
+    def __init__(self):
+        self.authorization = gpt_config.gpt_api_key
+        self.session_token = gpt_config.gpt_session_token
+        self.conversation_id = None
+        self.parent_id = str(uuid.uuid4())
+
+    def reset_chat(self) -> None:
+        self.conversation_id = None
+        self.parent_id = str(uuid.uuid4())
+
+    def generate_data(self, prompt):
+        return {
+            "action": "next",
+            "messages": [
+                {"id": str(uuid.uuid4()),
+                 "role": "user",
+                 "content": {"content_type": "text", "parts": [prompt]}
+                 }],
+            "conversation_id": self.conversation_id,
+            "parent_message_id": self.parent_id,
+            "model": "text-davinci-002-render"
+        }
+
+    @property
+    def headers(self) -> dict[str, str]:
+        return {
+            "Accept": "application/json",
+            "Authorization": "Bearer " + self.authorization,
+            "Content-Type": "application/json",
+            'User-Agent': USER_AGENT,
+        }
+
+    async def get_chat_stream(self, prompt: str):
+        data = json.dumps(self.generate_data(prompt))
+        async with aiohttp.ClientSession(raise_for_status=True, headers=self.headers) as client:
+            async with client.post('https://chat.openai.com/backend-api/conversation', data=data) as resp:
+                async for line in resp.content:
+                    try:
+                        line = json.loads(line.decode('utf-8')[6:])
+                        message = line["message"]["content"]["parts"][0]
+                        self.conversation_id = line["conversation_id"]
+                        self.parent_id = line["message"]["id"]
+                        yield message
+                    except (IndexError, json.decoder.JSONDecodeError):
+                        continue
+
+    async def refresh_session(self):
+        cookies = {
+            '__Secure-next-auth.session-token': self.session_token
+        }
+
+        async with aiohttp.ClientSession(cookies=cookies, headers=self.headers) as client:
+            async with client.get('https://chat.openai.com/api/auth/session') as resp:
+                self.session_token = resp.cookies.get('__Secure-next-auth.session-token')
+                self.authorization = (await resp.json())['accessToken']
