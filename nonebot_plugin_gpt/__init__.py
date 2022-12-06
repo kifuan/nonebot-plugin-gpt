@@ -47,8 +47,6 @@ async def handle_control_message(event: Union[GroupMessageEvent, PrivateMessageE
 
     cb = await Chatbot.get_instance()
 
-    print(text)
-
     if text == 'refresh_session':
         await cb.refresh_session()
         await control.send('刷新成功')
