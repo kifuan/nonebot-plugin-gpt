@@ -1,10 +1,13 @@
-import aiohttp
 import json
 import uuid
 import time
 import asyncio
+import aiohttp
+
 from pydantic import BaseModel
-from typing import AsyncGenerator, Optional, NoReturn
+from typing import AsyncGenerator, Optional, NoReturn, Union
+from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
+
 from .config import gpt_config
 
 USER_AGENT = (
@@ -163,3 +166,24 @@ class Chatbot:
             async with client.get('https://chat.openai.com/api/auth/session') as resp:
                 self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
                 self._authorization = (await resp.json())['accessToken']
+
+
+def get_unique_id(event: Union[GroupMessageEvent, PrivateMessageEvent]) -> int:
+    """
+    Generate a unique id for the specified event, with one more number at the tail to avoid duplicate ids.
+
+    To get the real id, you could floor divide it by 10.
+    For example:
+    >>> unique_id = get_unique_id(event)
+    >>> real_id = unique_id // 10
+
+    :param event the event to get unique id.
+    """
+
+    if event.message_type == 'group':
+        return event.group_id * 10 + 1
+
+    if event.message_type == 'private':
+        return event.user_id * 10 + 2
+
+    raise TypeError('invalid message type ' + event.message_type)

@@ -4,7 +4,7 @@ from nonebot import on_command, on_regex, get_driver
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from typing import Union
 
-from .chatbot import Chatbot
+from .chatbot import Chatbot, get_unique_id
 from .config import gpt_config
 
 
@@ -21,15 +21,17 @@ async def _():
 
 
 @gpt.handle()
-async def handle_explicit_message(event: GroupMessageEvent):
+async def handle_explicit_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     cb = await Chatbot.get_instance()
     text = event.get_message().extract_plain_text()
-    async for line in cb.get_chat_lines(event.group_id, text):
+
+    unique_id = get_unique_id(event)
+    async for line in cb.get_chat_lines(unique_id, text):
         await gpt.send(line)
 
 
 @control.handle()
-async def _(event: GroupMessageEvent):
+async def _(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     if event.sender.user_id not in gpt_config.gpt_sudoers:
         await control.send('没有权限')
         return
@@ -43,15 +45,17 @@ async def _(event: GroupMessageEvent):
         return
 
     if text == 'reset_status':
-        cb.reset_or_create_context(event.group_id)
-        await control.send('重置成功')
+        unique_id = get_unique_id(event)
+        real_id = unique_id // 10
+        cb.reset_or_create_context(get_unique_id(event))
+        await control.send(f'重置{real_id}的上下文成功')
         return
 
     await control.send('无效命令')
 
 
 @message.handle()
-async def _(event: GroupMessageEvent):
+async def _(event: Union[GroupMessageEvent, PrivateMessageEvent]):
     if random.random() >= gpt_config.gpt_probability:
         return
 
@@ -62,5 +66,6 @@ async def _(event: GroupMessageEvent):
         return
 
     cb = await Chatbot.get_instance()
-    async for line in cb.get_chat_lines(event.group_id, msg):
+    unique_id = get_unique_id(event)
+    async for line in cb.get_chat_lines(unique_id, msg):
         await message.send(line)
