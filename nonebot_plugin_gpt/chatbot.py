@@ -40,7 +40,7 @@ class Chatbot:
     You should use `Chatbot.get_instance` to get the chatbot object,
     as it will refresh the session token by default.
 
-    >>> await Chatbot.get_instance()
+    >>> cb = await Chatbot.get_instance()
     """
 
     _instance: Optional['Chatbot'] = None
@@ -62,7 +62,7 @@ class Chatbot:
     @classmethod
     async def get_instance(cls) -> 'Chatbot':
         """
-        Gets chatbot instance.
+        Gets chatbot instance, with refreshing the session when initializing.
         :return: the instance.
         """
 
@@ -103,14 +103,20 @@ class Chatbot:
     async def get_chat_lines(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         """
         Gets lines for specified id and prompt text.
+
+        For example, by this way it will print all lines of the response from chatbot:
+        >>> cb = await Chatbot.get_instance()
+        >>> async for line in cb.get_chat_lines(unique_id, 'Hi'):
+        >>>     print(line)
+
         :param unique_id: the unique id.
         :param prompt: the prompt text.
         :return: an async generator containing content in lines from ChatGPT.
         """
         cached_line = ''
         skip = 0
-        async for line in self._get_chat_stream(unique_id, prompt):
-            cached_line = line[skip:]
+        async for full_content in self._get_chat_stream(unique_id, prompt):
+            cached_line = full_content[skip:]
             if cached_line.endswith('\n'):
                 skip += len(cached_line)
                 yield cached_line.strip()
@@ -150,6 +156,9 @@ class Chatbot:
                         yield message
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
+                    except aiohttp.ClientResponseError as e:
+                        yield f'error {e.status}: {e.message}'
+                        return
 
     async def refresh_session(self) -> None:
         """
