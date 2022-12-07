@@ -4,6 +4,7 @@ import time
 import asyncio
 import aiohttp
 
+from urllib.parse import urljoin
 from pydantic import BaseModel
 from typing import AsyncGenerator, Optional, Union
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
@@ -158,7 +159,8 @@ class Chatbot:
         await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(raise_for_status=True, headers=self._headers) as client:
-            async with client.post('https://chat.openai.com/backend-api/conversation', proxy=self._proxy, data=data) as resp:
+            url = urljoin(self._api_baseurl, 'backend-api/conversation')
+            async with client.post(url, proxy=self._proxy, data=data) as resp:
                 async for line in resp.content:
                     try:
                         line = json.loads(line.decode('utf-8')[6:])
@@ -181,7 +183,8 @@ class Chatbot:
         await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(cookies=cookies, headers=self._headers) as client:
-            async with client.get('https://chat.openai.com/api/auth/session', proxy=self._proxy) as resp:
+            url = urljoin(self._api_baseurl, 'api/auth/session')
+            async with client.get(url, proxy=self._proxy) as resp:
                 self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
                 self._authorization = (await resp.json())['accessToken']
 
