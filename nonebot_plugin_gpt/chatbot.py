@@ -115,11 +115,16 @@ class Chatbot:
         """
         cached_line = ''
         skip = 0
-        async for full_content in self._get_chat_stream(unique_id, prompt):
-            cached_line = full_content[skip:]
-            if cached_line.endswith('\n'):
-                skip += len(cached_line)
-                yield cached_line.strip()
+
+        try:
+            async for full_content in self._get_chat_stream(unique_id, prompt):
+                cached_line = full_content[skip:]
+                if cached_line.endswith('\n'):
+                    skip += len(cached_line)
+                    yield cached_line.strip()
+        except aiohttp.ClientResponseError as e:
+            yield f'error {e.status}: {e.message}'
+            return
 
         if cached_line != '':
             yield cached_line.strip()
@@ -156,9 +161,6 @@ class Chatbot:
                         yield message
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
-                    except aiohttp.ClientResponseError as e:
-                        yield f'error {e.status}: {e.message}'
-                        return
 
     async def refresh_session(self) -> None:
         """
