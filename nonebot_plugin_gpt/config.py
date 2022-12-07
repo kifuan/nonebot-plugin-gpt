@@ -10,6 +10,7 @@ class Config(BaseModel, extra=Extra.ignore):
     gpt_probability: float = 0
     gpt_proxy: Optional[str] = None
     gpt_api_baseurl: str = 'https://chat.openai.com'
+    gpt_timeout: int = 20
 
 
 gpt_config: Config = Config.parse_obj(get_driver().config)

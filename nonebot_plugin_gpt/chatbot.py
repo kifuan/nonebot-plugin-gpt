@@ -52,6 +52,7 @@ class Chatbot:
         self._session_token = gpt_config.gpt_session_token
         self._proxy = gpt_config.gpt_proxy
         self._api_baseurl = gpt_config.gpt_api_baseurl
+        self._timeout = aiohttp.ClientTimeout(total=gpt_config.gpt_timeout)
         self._last_request_time = 0
         self._contexts: dict[int, ChatbotContext] = {}
 
@@ -136,6 +137,10 @@ class Chatbot:
             logger.error(msg)
             yield msg
             return
+        except asyncio.TimeoutError:
+            logger.error('timeout')
+            yield '请求超时'
+            return
 
         if cached_line != '':
             yield cached_line.strip()
@@ -161,7 +166,12 @@ class Chatbot:
 
         await self._sleep_for_next_request()
 
-        async with aiohttp.ClientSession(raise_for_status=True, headers=self._headers) as client:
+        async with aiohttp.ClientSession(
+                raise_for_status=True,
+                headers=self._headers,
+                timeout=self._timeout
+        ) as client:
+
             url = urljoin(self._api_baseurl, 'backend-api/conversation')
             async with client.post(url, proxy=self._proxy, data=data) as resp:
                 async for line in resp.content:
@@ -185,7 +195,12 @@ class Chatbot:
 
         await self._sleep_for_next_request()
 
-        async with aiohttp.ClientSession(cookies=cookies, headers=self._headers) as client:
+        async with aiohttp.ClientSession(
+                cookies=cookies,
+                headers=self._headers,
+                timeout=self._timeout
+        ) as client:
+
             url = urljoin(self._api_baseurl, 'api/auth/session')
             async with client.get(url, proxy=self._proxy) as resp:
                 self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
