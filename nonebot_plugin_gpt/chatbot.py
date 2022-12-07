@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 from pydantic import BaseModel
 from typing import AsyncGenerator, Optional, Union
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
+from nonebot.log import logger
 
 from .config import gpt_config
 
@@ -131,7 +132,9 @@ class Chatbot:
                     skip += len(cached_line)
                     yield cached_line.strip()
         except aiohttp.ClientResponseError as e:
-            yield f'error {e.status}: {e.message}'
+            msg = f'error {e.status}: {e.message}'
+            logger.error(msg)
+            yield msg
             return
 
         if cached_line != '':
