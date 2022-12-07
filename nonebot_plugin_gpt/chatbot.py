@@ -48,6 +48,8 @@ class Chatbot:
     def __init__(self):
         self._authorization = gpt_config.gpt_api_key
         self._session_token = gpt_config.gpt_session_token
+        self._proxy = gpt_config.gpt_proxy
+        self._api_baseurl = gpt_config.gpt_api_baseurl
         self._last_request_time = 0
         self._contexts: dict[int, ChatbotContext] = {}
 
@@ -55,7 +57,7 @@ class Chatbot:
         now = int(time.time())
         request_should_after = self._last_request_time + REQUEST_DURATION
         if request_should_after > now:
-            # Sleep the remaining seconds.
+            # Sleep for the remaining seconds.
             await asyncio.sleep(request_should_after - now)
         self._last_request_time = int(time.time())
 
@@ -93,8 +95,13 @@ class Chatbot:
 
     @property
     def _headers(self) -> dict[str, str]:
+        # https://github.com/acheong08/ChatGPT/blob/main/src/revChatGPT/revChatGPT.py
         return {
-            'Accept': 'application/json',
+            'Host': 'chat.openai.com',
+            'Referer': 'https://chat.openai.com/chat',
+            'X-Openai-Assistant-App-Id': '',
+            'Connection': 'close',
+            'Accept': 'text/event-stream',
             'Authorization': self._authorization,
             'Content-Type': 'application/json',
             'User-Agent': USER_AGENT,
@@ -151,7 +158,7 @@ class Chatbot:
         await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(raise_for_status=True, headers=self._headers) as client:
-            async with client.post('https://chat.openai.com/backend-api/conversation', data=data) as resp:
+            async with client.post('https://chat.openai.com/backend-api/conversation', proxy=self._proxy, data=data) as resp:
                 async for line in resp.content:
                     try:
                         line = json.loads(line.decode('utf-8')[6:])
@@ -174,7 +181,7 @@ class Chatbot:
         await self._sleep_for_next_request()
 
         async with aiohttp.ClientSession(cookies=cookies, headers=self._headers) as client:
-            async with client.get('https://chat.openai.com/api/auth/session') as resp:
+            async with client.get('https://chat.openai.com/api/auth/session', proxy=self._proxy) as resp:
                 self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
                 self._authorization = (await resp.json())['accessToken']
 
