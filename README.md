@@ -22,6 +22,8 @@
 + `GPT_SESSION_TOKEN`: 在 [https://chat.openai.com/chat](https://chat.openai.com/chat) 下，把 `F12` -> `Application` -> `Cookies` -> `__Secure-next-auth.session-token` 的内容复制下来，填入此配置项。
 + `GPT_API_KEY`：到 [https://beta.openai.com/account/api-keys](https://beta.openai.com/account/api-keys) 生成你的 `API Key`，填入此配置项。
 + `GPT_SUDOERS`：一个有权限控制此机器人的QQ号列表，例如`[123, 456]`。
++ `GPT_API_BASEURL`：你可以用这个配置反代，默认为 `https://chat.openai.com`，也就是不走代理。
++ `GPT_API_PROXY`：代理，默认为 `None`，也就是不走代理。
 + `GPT_PROBABILITY`：回复普通消息的概率，默认为 `0`，也就是不回复。我觉得这个功能其实不太好，但是考虑到某些人可能想要以这种方式与机器人互动，还是加上了这个配置项，并且必须你手动开启。
 
 
