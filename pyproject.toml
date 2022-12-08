@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-gpt"
-version = "0.1.13"
+version = "0.1.14"
 description = "Chatbot plugin based on ChatGPT for Nonebot."
 authors = ["kifuan"]
 license = "MIT"
