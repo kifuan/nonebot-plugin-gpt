@@ -10,17 +10,12 @@ from typing import AsyncGenerator, Optional, Union
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.log import logger
 
-from .config import gpt_config
+from .config import Config, gpt_config
 
 USER_AGENT = (
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
     'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
 )
-
-
-# The request interval in seconds.
-REQUEST_DURATION = 5
-
 
 class ChatbotContext(BaseModel):
     """
@@ -47,21 +42,24 @@ class Chatbot:
 
     _instance: Optional['Chatbot'] = None
 
-    def __init__(self):
-        self._authorization = gpt_config.gpt_api_key
-        self._session_token = gpt_config.gpt_session_token
-        self._proxy = gpt_config.gpt_proxy
-        self._api_baseurl = gpt_config.gpt_api_baseurl
-        self._timeout = aiohttp.ClientTimeout(total=gpt_config.gpt_timeout)
+    def __init__(self, config: Config):
+        self._authorization = config.gpt_api_key
+        self._session_token = config.gpt_session_token
+        self._proxy = config.gpt_proxy
+        self._api_baseurl = config.gpt_api_baseurl
+        self._request_minimal_interval = config.gpt_request_minimal_interval
+        self._timeout = aiohttp.ClientTimeout(total=config.gpt_timeout)
         self._last_request_time = 0
         self._contexts: dict[int, ChatbotContext] = {}
 
     async def _sleep_for_next_request(self):
-        now = int(time.time())
-        request_should_after = self._last_request_time + REQUEST_DURATION
-        if request_should_after > now:
-            # Sleep for the remaining seconds.
-            await asyncio.sleep(request_should_after - now)
+        while True:
+            remaining_seconds = self._last_request_time + self._request_minimal_interval - int(time.time())
+            if remaining_seconds <= 0:
+                break
+            logger.debug(f'Sleep for remaining {remaining_seconds} seconds')
+            await asyncio.sleep(remaining_seconds)
+        logger.debug(f'Sleep done')
         self._last_request_time = int(time.time())
 
     @classmethod
@@ -74,7 +72,7 @@ class Chatbot:
         if cls._instance is not None:
             return cls._instance
 
-        cls._instance = Chatbot()
+        cls._instance = Chatbot(gpt_config)
         await cls._instance.refresh_session()
         return cls._instance
 
