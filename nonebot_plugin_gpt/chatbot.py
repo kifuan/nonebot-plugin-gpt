@@ -109,6 +109,18 @@ class Chatbot:
             'User-Agent': USER_AGENT,
         }
 
+    async def _handle_response_error_with_message(self, e: aiohttp.ClientResponseError) -> str:
+        if e.status != 401:
+            logger.error(e)
+            return f'error {e.status}: {e.message}'
+
+        try:
+            await self.refresh_session()
+        except aiohttp.ClientResponseError as e1:
+            logger.error(e1)
+            return '登陆过期，但刷新 token 失败，请查看控制台输出。'
+        return '登录过期，已刷新 token 信息，请重试。'
+
     async def get_chat_lines(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         """
         Gets lines for specified id and prompt text.
@@ -132,9 +144,7 @@ class Chatbot:
                     skip += len(cached_line)
                     yield cached_line.strip()
         except aiohttp.ClientResponseError as e:
-            msg = f'error {e.status}: {e.message}'
-            logger.error(msg)
-            yield msg
+            yield await self._handle_response_error_with_message(e)
             return
         except asyncio.TimeoutError:
             logger.error('timeout')

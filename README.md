@@ -38,11 +38,13 @@
 + `/gpt {message}`
   聊天。注意，用户无需输入花括号，这里只是为了方便说明，它是一个消息。
 
+  如果接受消息时 `token` 过期，它会尝试自动刷新，并通知由于这个错误而请求失败的群聊或私聊。
+
 + `/gpt_control {action}`
 
   在 `GPT_SUDOERS` 中的用户可以控制此机器人，有下列两个`action`：
 
-  + `refresh_session`：刷新 `session`，根据 `ChatGPT` 下的 [issue #11](https://github.com/acheong08/ChatGPT/issues/11)，你填写的 `session` 应当有一个月的有效期。
+  + `refresh_session`：刷新 `session`，根据我的使用，貌似这个 `token` 的有效期只有一天，准确时间不确定。
   + `reset_context`：刷新聊天记录的上下文。
 
 + 当 `GPT_PROBABILITY` 不为 `0` 时，有概率回复你发的普通消息。但是如果没有文本，例如只发了图片或聊天记录，它是不会回复的。
