@@ -17,15 +17,17 @@
 
 ## 配置项
 
-关于如何配置，请参考 [Nonebot 文档](https://v2.nonebot.dev/docs/tutorial/configuration#%E9%85%8D%E7%BD%AE%E6%96%B9%E5%BC%8F)。
+下方的配置项都要在 `.env` 中配置，请参考 [Nonebot 文档](https://v2.nonebot.dev/docs/tutorial/configuration#%E9%85%8D%E7%BD%AE%E6%96%B9%E5%BC%8F)。
 
-+ `GPT_SESSION_TOKEN`: 在 [https://chat.openai.com/chat](https://chat.openai.com/chat) 下，把 `F12` -> `Application` -> `Cookies` -> `__Secure-next-auth.session-token` 的内容复制下来，填入此配置项。
-+ `GPT_API_KEY`：到 [https://beta.openai.com/account/api-keys](https://beta.openai.com/account/api-keys) 生成你的 `API Key`，填入此配置项。
-+ `GPT_SUDOERS`：一个有权限控制此机器人的QQ号列表，例如`[123, 456]`。
-+ `GPT_API_BASEURL`：你可以用这个配置反代，默认为 `https://chat.openai.com`，也就是不走代理。
-+ `GPT_API_PROXY`：代理，默认为 `None`，也就是不走代理。
-+ `GPT_TIMEOUT`：超时事件，单位为秒，默认为 `20` 秒。
-+ `GPT_PROBABILITY`：回复普通消息的概率，默认为 `0`，也就是不回复。我觉得这个功能其实不太好，但是考虑到某些人可能想要以这种方式与机器人互动，还是加上了这个配置项，并且必须你手动开启。
+| 名称                | 类型            | 默认值                    | 描述                                                         |
+| ------------------- | --------------- | ------------------------- | ------------------------------------------------------------ |
+| `GPT_SESSION_TOKEN` | `str`           | **必填**                  | 在 [https://chat.openai.com/chat](https://chat.openai.com/chat) 下，把 `F12` -> `Application` -> `Cookies` -> `__Secure-next-auth.session-token` 的内容复制下来，填入此配置项。 |
+| `GPT_API_KEY`       | `str`           | **必填**                  | 到 [https://beta.openai.com/account/api-keys](https://beta.openai.com/account/api-keys) 生成你的 `API Key`，填入此配置项。 |
+| `GPT_SUDOERS`       | `list[int]`     | **必填**                  | 一个有权限控制此机器人的QQ号列表，例如`[123, 456]`。         |
+| `GPT_API_BASEURL`   | `str`           | `https://chat.openai.com` | 你可以用这个配置反代，默认使用官方链接，也就是不走代理。     |
+| `GPT_API_PROXY`     | `Optional[str]` | `None`                    | 代理，为 `None` 即默认情况不走代理。                         |
+| `GPT_TIMEOUT`       | `int`           | `20`                      | 超时时间，单位为秒。                                         |
+| `GPT_PROBABILITY`   | `float`         | `0`                       | 回复普通消息的概率，默认为 `0` 概率，也就是不回复。我觉得这个功能其实不太好，但是考虑到某些人可能想要以这种方式与机器人互动，还是加上了这个配置项，并且必须你手动开启。 |
 
 
 ## 使用

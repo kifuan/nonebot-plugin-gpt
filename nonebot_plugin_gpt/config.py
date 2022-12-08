@@ -4,8 +4,8 @@ from typing import Optional
 
 
 class Config(BaseModel, extra=Extra.ignore):
-    gpt_session_token: Optional[str]
-    gpt_api_key: Optional[str]
+    gpt_session_token: str
+    gpt_api_key: str
     gpt_sudoers: list[int]
     gpt_probability: float = 0
     gpt_proxy: Optional[str] = None
