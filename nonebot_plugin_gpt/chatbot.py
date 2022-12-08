@@ -118,8 +118,8 @@ class Chatbot:
             await self.refresh_session()
         except aiohttp.ClientResponseError as e1:
             logger.error(e1)
-            return '登陆过期，但刷新 token 失败，请查看控制台输出。'
-        return '登录过期，已刷新 token 信息，请重试。'
+            return 'token 过期，但刷新失败，请查看日志输出。'
+        return 'token 过期，已刷新成功，请重试。'
 
     async def get_chat_lines(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         """
