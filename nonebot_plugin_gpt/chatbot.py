@@ -17,6 +17,7 @@ USER_AGENT = (
     'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
 )
 
+
 class ChatbotContext(BaseModel):
     """
     It makes the contexts independent for different people or groups.
@@ -198,7 +199,6 @@ class Chatbot:
                 headers=self._headers,
                 timeout=self._timeout
         ) as client:
-
             url = urljoin(self._api_baseurl, 'api/auth/session')
             async with client.get(url, proxy=self._proxy) as resp:
                 self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
