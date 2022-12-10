@@ -53,15 +53,9 @@ class Chatbot:
         self._last_request_time = 0
         self._contexts: dict[int, ChatbotContext] = {}
 
-    async def _sleep_for_next_request(self):
-        while True:
-            remaining_seconds = self._last_request_time + self._request_minimal_interval - int(time.time())
-            if remaining_seconds <= 0:
-                break
-            logger.debug(f'Sleep for remaining {remaining_seconds} seconds')
-            await asyncio.sleep(remaining_seconds)
-        logger.debug(f'Sleep done')
-        self._last_request_time = int(time.time())
+    @property
+    def cooling_time(self):
+        return self._last_request_time + self._request_minimal_interval - int(time.time())
 
     @classmethod
     async def get_instance(cls) -> 'Chatbot':
@@ -109,50 +103,29 @@ class Chatbot:
             'User-Agent': USER_AGENT,
         }
 
-    async def _handle_response_error_with_message(self, e: aiohttp.ClientResponseError) -> str:
-        if e.status != 401:
-            logger.error(e)
-            return f'error {e.status}: {e.message}'
-
-        try:
-            await self.refresh_session()
-        except aiohttp.ClientResponseError as e1:
-            logger.error(e1)
-            return 'token 过期，但刷新失败，请查看日志输出。'
-        return 'token 过期，已刷新成功，请重试。'
-
-    async def get_chat_lines(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
+    async def get_chat_response(self, unique_id: int, prompt: str) -> str:
         """
         Gets lines for specified id and prompt text.
 
         For example, by this way it will print all lines of the response from chatbot:
         >>> cb = await Chatbot.get_instance()
-        >>> async for line in cb.get_chat_lines(unique_id, 'Hi'):
-        >>>     print(line)
 
         :param unique_id: the unique id.
         :param prompt: the prompt text.
         :return: an async generator containing content in lines from ChatGPT.
         """
-        cached_line = ''
-        skip = 0
-
+        result = ''
         try:
-            async for full_content in self._get_chat_stream(unique_id, prompt):
-                cached_line = full_content[skip:]
-                if cached_line.endswith('\n'):
-                    skip += len(cached_line)
-                    yield cached_line.strip('\n')
+            async for line in self._get_chat_stream(unique_id, prompt):
+                result = line
+            return result
         except aiohttp.ClientResponseError as e:
-            yield await self._handle_response_error_with_message(e)
-            return
+            if e.status != 401:
+                logger.error(e)
+                return f'error {e.status}: {e.message}'
+            return await self.refresh_session()
         except asyncio.TimeoutError:
-            logger.error('timeout')
-            yield '请求超时'
-            return
-
-        if cached_line != '':
-            yield cached_line.strip('\n')
+            return '请求超时'
 
     async def _get_chat_stream(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         ctx = self.get_or_create_context(unique_id)
@@ -173,7 +146,7 @@ class Chatbot:
             'model': 'text-davinci-002-render'
         })
 
-        await self._sleep_for_next_request()
+        self._last_request_time = int(time.time())
 
         async with aiohttp.ClientSession(
                 raise_for_status=True,
@@ -193,16 +166,17 @@ class Chatbot:
                     except (IndexError, json.decoder.JSONDecodeError):
                         continue
 
-    async def refresh_session(self) -> None:
+    async def refresh_session(self) -> str:
         """
         Refreshes the token to avoid being expired.
+        :return message to the user.
         """
 
         cookies = {
             '__Secure-next-auth.session-token': self._session_token
         }
 
-        await self._sleep_for_next_request()
+        self._last_request_time = int(time.time())
 
         async with aiohttp.ClientSession(
                 cookies=cookies,
@@ -211,26 +185,10 @@ class Chatbot:
         ) as client:
             url = urljoin(self._api_baseurl, 'api/auth/session')
             async with client.get(url, proxy=self._proxy) as resp:
-                self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
-                self._authorization = (await resp.json())['accessToken']
-
-
-def get_unique_id(event: Union[GroupMessageEvent, PrivateMessageEvent]) -> int:
-    """
-    Generate a unique id for the specified event, with one more number at the tail to avoid duplicate ids.
-
-    To get the real id, you could floor divide it by 10.
-    For example:
-    >>> unique_id = get_unique_id(event)
-    >>> real_id = unique_id // 10
-
-    :param event the event to get unique id.
-    """
-
-    if event.message_type == 'group':
-        return event.group_id * 10 + 1
-
-    if event.message_type == 'private':
-        return event.user_id * 10 + 2
-
-    raise TypeError('invalid message type ' + event.message_type)
+                try:
+                    self._session_token = resp.cookies.get('__Secure-next-auth.session-token')
+                    self._authorization = (await resp.json())['accessToken']
+                    return '刷新成功'
+                except Exception as e:
+                    logger.error(e)
+                    return '刷新失败，请到控制台查看报错。'
