@@ -95,5 +95,8 @@ async def handle_control_message(event: Union[GroupMessageEvent, PrivateMessageE
 
 @message.handle()
 async def handle_probability_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
+    if random.random() >= gpt_config.gpt_probability:
+        return
+
     if response := get_response_for_event(event) is not None:
         await message.send(response)
