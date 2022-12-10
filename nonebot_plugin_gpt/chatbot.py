@@ -142,7 +142,7 @@ class Chatbot:
                 cached_line = full_content[skip:]
                 if cached_line.endswith('\n'):
                     skip += len(cached_line)
-                    yield cached_line.strip()
+                    yield cached_line.strip('\n')
         except aiohttp.ClientResponseError as e:
             yield await self._handle_response_error_with_message(e)
             return
@@ -152,7 +152,7 @@ class Chatbot:
             return
 
         if cached_line != '':
-            yield cached_line.strip()
+            yield cached_line.strip('\n')
 
     async def _get_chat_stream(self, unique_id: int, prompt: str) -> AsyncGenerator[str, None]:
         ctx = self.get_or_create_context(unique_id)
