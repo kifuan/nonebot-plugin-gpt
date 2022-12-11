@@ -1,7 +1,6 @@
-import pkgutil
-import textwrap
-
 from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
+from typing import Generator
 from functools import lru_cache
 from .config import gpt_config
 
@@ -9,14 +8,30 @@ from .config import gpt_config
 @lru_cache()
 def _get_font() -> ImageFont.FreeTypeFont:
     user_font = gpt_config.gpt_image_font
-    font = pkgutil.get_data(__name__, 'font.otf') if user_font is None else user_font
+    default_font = str(Path(__file__).parent / 'font.otf')
+    font = default_font if user_font is None else user_font
     return ImageFont.truetype(font, gpt_config.gpt_image_font_size)
+
+
+def _wrap_line_by_font(line: str) -> Generator[str, None, None]:
+    font = _get_font()
+    pos = 0
+    while True:
+        pos += 1
+        if pos >= len(line):
+            yield line
+            return
+
+        if font.getlength(line[:pos]) >= gpt_config.gpt_image_line_width:
+            yield line[:pos-1]
+            line = line[pos-1:]
+            pos = 0
 
 
 def _wrap_lines(text: str) -> list[str]:
     return [
-        line for raw_line in text.splitlines(True)
-        for line in textwrap.wrap(raw_line, gpt_config.gpt_image_line_width, replace_whitespace=False)
+        line for raw_line in text.splitlines(False)
+        for line in _wrap_line_by_font(raw_line)
     ]
 
 

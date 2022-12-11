@@ -15,7 +15,7 @@ class Config(BaseModel, extra=Extra.ignore):
     gpt_image_text_length: int = 150
     gpt_image_font: Optional[str] = None
     gpt_image_font_size: int = 20
-    gpt_image_line_width: int = 30
+    gpt_image_line_width: int = 500
     gpt_image_padding: int = 20
 
 
