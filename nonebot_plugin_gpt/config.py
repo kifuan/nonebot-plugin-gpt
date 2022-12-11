@@ -12,6 +12,11 @@ class Config(BaseModel, extra=Extra.ignore):
     gpt_api_baseurl: str = 'https://chat.openai.com'
     gpt_timeout: int = 20
     gpt_request_minimal_interval: int = 5
+    gpt_image_text_length: int = 100
+    gpt_image_font: Optional[str] = None
+    gpt_image_font_size: int = 20
+    gpt_image_line_width: int = 30
+    gpt_image_padding: int = 20
 
 
 gpt_config: Config = Config.parse_obj(get_driver().config)

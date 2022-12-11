@@ -1,10 +1,12 @@
 import random
 
 from nonebot import on_command, on_regex, get_driver
+from nonebot.adapters.onebot.v11.message import MessageSegment
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from typing import Union, Optional
 
 from .chatbot import Chatbot
+from .image import convert_text_to_image
 from .config import gpt_config
 
 
@@ -42,18 +44,23 @@ def remove_text_prefix(text: str) -> str:
     return text[len(fragments[0]):].strip()
 
 
-async def get_response_for_event(event: Union[GroupMessageEvent, PrivateMessageEvent]) -> Optional[str]:
+async def get_response_for_event(event: Union[GroupMessageEvent, PrivateMessageEvent]) -> Optional[MessageSegment]:
     cb = await Chatbot.get_instance()
 
     if cb.cooling_time > 0:
-        return f'冷却中，请 {cb.cooling_time} 秒后重试。'
+        return MessageSegment.text(f'冷却中，请 {cb.cooling_time} 秒后重试。')
 
     prompt = remove_text_prefix(event.get_message().extract_plain_text())
     if prompt == '':
         return None
 
     unique_id = get_unique_id_for_event(event)
-    return await cb.get_chat_response(unique_id, prompt)
+    response = await cb.get_chat_response(unique_id, prompt)
+
+    if len(response) >= gpt_config.gpt_image_text_length:
+        return MessageSegment.image(convert_text_to_image(response))
+
+    return MessageSegment.text(response)
 
 
 @driver.on_startup
