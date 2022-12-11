@@ -118,7 +118,7 @@ class Chatbot:
         try:
             async for line in self._get_chat_stream(unique_id, prompt):
                 result = line
-            return result
+            return result.strip()
         except aiohttp.ClientResponseError as e:
             if e.status != 401:
                 logger.error(e)
