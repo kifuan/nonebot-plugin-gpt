@@ -48,7 +48,7 @@ async def get_response_for_event(event: Union[GroupMessageEvent, PrivateMessageE
     cb = await Chatbot.get_instance()
 
     if cb.cooling_time > 0:
-        return MessageSegment.text(f'冷却中，请 {cb.cooling_time} 秒后重试。')
+        return MessageSegment.text(f'冷却中，请{cb.cooling_time}秒后重试。')
 
     prompt = remove_text_prefix(event.get_message().extract_plain_text())
     if prompt == '':
@@ -71,7 +71,7 @@ async def startup():
 
 @gpt.handle()
 async def handle_explicit_message(event: Union[GroupMessageEvent, PrivateMessageEvent]):
-    if response := get_response_for_event(event) is not None:
+    if (response := await get_response_for_event(event)) is not None:
         await gpt.send(response)
 
 
@@ -105,5 +105,5 @@ async def handle_probability_message(event: Union[GroupMessageEvent, PrivateMess
     if random.random() >= gpt_config.gpt_probability:
         return
 
-    if response := get_response_for_event(event) is not None:
+    if (response := await get_response_for_event(event)) is not None:
         await message.send(response)
