@@ -34,7 +34,7 @@
 | `GPT_IMAGE_TEXT_LENGTH`        | `int`           | `150`                     | 当文本长度大于等于这个数字时，会被转为图片发送。                                                                                                                                     |
 | `GPT_IMAGE_FONT`               | `Optional[str]` | `None`                    | 图片文本的字体，默认为本项目内置的思源黑体。                                                                                                                                       |
 | `GPT_IMAGE_FONT_SIZE`          | `int`           | `20`                      | 字体大小。                                                                                                                                                        |
-| `GPT_IMAGE_LINE_WIDTH`         | `int`           | `30`                      | 每行有几个字符。                                                                                                                                                     |
+| `GPT_IMAGE_LINE_WIDTH`         | `int`           | `500`                     | 每行宽度。                                                                                                                                                        |
 | `GPT_IMAGE_PADDING`            | `int`           | `20`                      | 图片四周的空白大小，以及每行之间的间距。                                                                                                                                         |
 
 ## 使用
