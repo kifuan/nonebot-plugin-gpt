@@ -1,3 +1,5 @@
+import io
+
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 from typing import Generator
@@ -35,7 +37,7 @@ def _wrap_lines(text: str) -> list[str]:
     ]
 
 
-def convert_text_to_image(text: str) -> bytes:
+def convert_text_to_image(text: str) -> io.BytesIO:
     lines = _wrap_lines(text)
     font = _get_font()
     width = max(int(font.getlength(line)) for line in lines) + 2 * gpt_config.gpt_image_padding
@@ -51,4 +53,6 @@ def convert_text_to_image(text: str) -> bytes:
         top = i * (gpt_config.gpt_image_font_size + gpt_config.gpt_image_padding) + gpt_config.gpt_image_padding
         draw.text((gpt_config.gpt_image_padding, top), text=line, fill=(0, 0, 0), font=font)
 
-    return image.tobytes()
+    fp = io.BytesIO()
+    image.save(fp, 'jpeg')
+    return fp
